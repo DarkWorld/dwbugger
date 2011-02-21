@@ -368,7 +368,7 @@ int parse_cmd (uint8_t *buf, int *len)
     if (!para)
         return cmd;
 
-    if (0 == strncmp (para, "help", strlen ("help"))
+    if (0 == strncmp (para, "help", strlen ("help")))
         return CMD_HELP;
     /* Dissassebly */
     else if ((0 == strncmp (para, "disass", strlen ("disass")))
