@@ -126,7 +126,7 @@ int debug (pid_t cpid)
     g_bp.is_fresh = FALSE;
     
     /* Child has stopped in first instruction */
-	wait (&status);
+    wait (&status);
 
     /* Print initial information */
     ptrace (PTRACE_GETREGS, cpid, NULL, &regs);
@@ -213,8 +213,8 @@ int debug (pid_t cpid)
             buf_len = max (peek.len, 1);
             if ('x' == peek.format || 0 == peek.format)
                 buf_len *= 4;
-			else if ('s' == peek.format)
-				buf_len = BUF_LEN;
+            else if ('s' == peek.format)
+                buf_len = BUF_LEN;
             buf_len = min (buf_len, BUF_LEN);
 
             if (-1 == peek_m (cpid, peek.addr, buf, &buf_len)) {
@@ -223,11 +223,10 @@ int debug (pid_t cpid)
                 break;
             }
 
-			if ('s' == peek.format) {
-				printf ("%s\n", buf);
-				break;
-			}
-
+            if ('s' == peek.format) {
+                printf ("%s\n", buf);
+                break;
+            }
 
             if (peek.format != 'b' && peek.format != 'x' && peek.format != 0) {
                 printf ("Unsupported format\n");
@@ -394,7 +393,7 @@ int parse_cmd (uint8_t *buf, int *len)
         
         /* Set breakpoint */
     } else if (!strncmp (para, "b", strlen("b"))
-             || !strncmp (para, "breakpoint", strlen("breakpoint"))) {
+               || !strncmp (para, "breakpoint", strlen("breakpoint"))) {
         para = strtok (NULL, split);
         if (para && (*len >= sizeof(uint32_t))){
             *len = sizeof(uint32_t);
@@ -733,7 +732,7 @@ int handle_bp (pid_t cpid, bp_t bp)
     if (bp.addr != reg.eip-1)   /* They're not matched. */
         return 0;
 
-    printf ("Stopped by breatpoint 0x%08X\n", bp.addr);
+    Printf ("Stopped by breatpoint 0x%08X\n", bp.addr);
     
     reg.eip = bp.addr;
 
