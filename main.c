@@ -156,6 +156,7 @@ int debug (pid_t cpid)
 #define CMD_POKE_R		8		/* Poke register */
 #define CMD_DISASS_SINGLE	9	/* Disassebly-single instruction */
 #define CMD_UNSPPORTED	10
+#define CMD_HELP		11
 
 
         buf_len = BUF_LEN;
@@ -168,6 +169,10 @@ int debug (pid_t cpid)
             
         case CMD_ERR:
             printf ("Error\n");
+            break;
+
+        case CMD_HELP:
+            print_help ();
             break;
 
             /* Disassembly */
@@ -362,9 +367,11 @@ int parse_cmd (uint8_t *buf, int *len)
     para = strtok (input, split);
     if (!para)
         return cmd;
- 
+
+    if (0 == strncmp (para, "help", strlen ("help"))
+        return CMD_HELP;
     /* Dissassebly */
-    if ((0 == strncmp (para, "disass", strlen ("disass")))
+    else if ((0 == strncmp (para, "disass", strlen ("disass")))
         || (0 == strncmp (para, "disassembly", strlen ("disassembly")))) {
         para = strtok (NULL, split);
         if (para && (*len >= sizeof(uint32_t))){
