@@ -744,7 +744,7 @@ int handle_bp (pid_t cpid, bp_t bp)
     if (bp.addr != reg.eip-1)   /* They're not matched. */
         return 0;
 
-    Printf ("Stopped by breatpoint 0x%08X\n", bp.addr);
+    printf ("Stopped by breatpoint 0x%08X\n", bp.addr);
     
     reg.eip = bp.addr;
 
