@@ -223,19 +223,18 @@ int debug (pid_t cpid)
                 break;
             }
 
-            print_len = 0;
-
-            if (peek.format != 'b' && peek.format != 'x' && peek.format != 's'
-				&& peek.format != 0) {
-                printf ("Unsupported format\n");
-                break;
-            }
-
 			if ('s' == peek.format) {
 				printf ("%s\n", buf);
 				break;
 			}
-            
+
+
+            if (peek.format != 'b' && peek.format != 'x' && peek.format != 0) {
+                printf ("Unsupported format\n");
+                break;
+            }
+
+            print_len = 0;
             while (print_len < buf_len) {
                 if (print_len % 16 == 0)
                     printf ("0x%08x:\t", peek.addr + print_len);
