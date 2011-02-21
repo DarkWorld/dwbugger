@@ -1,7 +1,7 @@
 Welcome to use DarkWorld's debugger.
 
 Discription:
-Dwbugger is a lightweight dynamic debugger for REC in assembly-language level.
+Dwbugger is a lightweight dynamic debugger for RE in assembly-language level.
 All of it's dubug-function is implemented via ptrace. So it doesn't need read
 permission.
 It can inset breakpoint, peek values of memory or registers, alter
