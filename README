@@ -1,0 +1,60 @@
+Welcome to use DarkWorld's debugger.
+
+Discription:
+Dwbugger is a lightweight dynamic debugger for REC in assembly-language level.
+All of it's dubug-function is implemented via ptrace. So it doesn't need read
+permission.
+It can inset breakpoint, peek values of memory or registers, alter
+values of memory or registers, continue, step by step etc. Enjoy it.
+
+ 
+Advantage:
+Needs no read permission. And it has the basic functions.
+    
+Disadvantage:
+It ONLY has basic functions, and doesn't offer any information of symbols.
+
+
+Command:
+help:
+	Print help information
+disass/disassembly <address>
+	Disassembly address's machine code
+
+        Example:
+        diass 0x08048300
+        
+peek/[len][format flag] <memory address or register>
+	Show values of memory address or registers.
+
+        format flag:
+        b : unsigned char
+        x : unsigned int
+        s : print string
+
+        registers:
+        $regs : print all regs' values
+        $eip  : print eip's value
+        $esp  : print esp's value
+        $ebp  : print ebp's value
+        $eax  : print eax's value
+
+        Example:
+        peek 0x08048300
+        peek/123b 0x08048300
+        peek/24x 0x08048300
+        peek $regs
+        peek $eip
+        
+poke <memory address or register>=<value>
+        Alter value of memory address or register
+
+        Registers:
+        $eip  : alter eip's value
+        $esp  : alter esp's value
+        $ebp  : alter ebp's value
+        $eax  : alter eax's value
+        
+        Example:
+        poke 0x08048300=0xdeadbeef
+        poke $eip=0x080483f1
