@@ -61,12 +61,19 @@ poke <memory address or register>=<value>
 
 
 Ps:
-Some guy maybe don't know how to find the address of main function. If you have no idea about this, it is better to read the paper "How main() is executed on Linux" first (you can google it).
+Some guy maybe don't know how to find the address of main function. If you have
+no idea about this, it is better to read the paper "How main() is executed on
+Linux" first (you can google it).
 
-So if we capture a serial of instrutions, like "push address1; call address2; hlt", we will know the address of main, because it is equal to "address1".
+So if we capture a serial of instrutions, like "push address1; call address2;
+hlt", we will know the address of main, because it is equal to "address1".
 
 But how can we caputer these special instructions?
-We know the entry address must be more than 0x08048000. So we can disassembly the program from this adress or othe address. Then We will capture the 'hlt' instruction. According to this 'hlt', we can find the address of main.
+We know the entry address must be more than 0x08048000. So we can disassembly
+the program from this adress or othe address. Then We will capture the 'hlt'
+instruction. According to this 'hlt', we can find the address of main.
+
+
 
 My english is not good, but dont be panic. The following is a practice-example:
 
