@@ -77,8 +77,10 @@ int main (int argc, char **argv)
 
     if (argc < 2) {
         printf ("\nUsage: %s <path of the traced program> [one argument]\n\n"
-                "You can type '%s -h' or '%s --help' to get more help info.\n"
-                "Enjoy it!\n\n", argv[0], argv[0], argv[0]);
+                "If this is the first time to use this program, pls read "
+				"README first.\nOr you can type '%s -h' or '%s --help' to get"
+				" some help info.\n\nEnjoy it!\n\n",
+				argv[0], argv[0], argv[0]);
         exit (0);
     }
 
