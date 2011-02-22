@@ -58,3 +58,104 @@ poke <memory address or register>=<value>
         Example:
         poke 0x08048300=0xdeadbeef
         poke $eip=0x080483f1
+
+
+Ps:
+Some guy maybe don't know how to find the address of main function. If you have no idea about this, it is better to read the paper "How main() is executed on Linux" first (you can google it).
+
+So if we capture a serial of instrutions, like "push address1; call address2; hlt", we will know the address of main, because it is equal to "address1".
+
+But how can we caputer these special instructions?
+We know the entry address must be more than 0x08048000. So we can disassembly the program from this adress or othe address. Then We will capture the 'hlt' instruction. According to this 'hlt', we can find the address of main.
+
+My english is not good, but dont be panic. The following is a practice-example:
+
+first, we guess the entry address is more than 0x08048200.
+so we disassembly from this address.
+
+dWbugger > disass 0x08048200
+0x08048200:	64 69 6E 5F 75 73 65 	imull 	$0x64657375,%fs:0x5F(%esi),%ebp
+0x08048208:	00 70 72             	addb 	%dh,0x72(%eax)
+0x0804820b:	69 6E 74 66 00 5F 5F 	imull 	$0x5F5F0066,0x74(%esi),%ebp
+...
+more
+...
+0x0804826b:	08 07                	orb 	%al,(%edi)
+0x0804826d:	02 00                	addb 	(%eax),%al
+0x0804826f:	00 80 95 04 08 07    	addb 	%al,0x7080495(%eax)
+0x08048275:	03 00                	addl 	(%eax),%eax
+0x08048277:	00 55 89             	addb 	%dl,-0x77(%ebp)
+0x0804827a:	E5 53                	in 	$0x53,%al
+0x0804827c:	83 EC 04             	sub 	$0x04,%esp
+[!!!!!!] Go on? ([Yy]/[Nn]) : y ---------> not lucky, failed to capture hlt, so type 'y' to continue
+0x0804827f:	E8 00 00 00 00       	lcall 	0x08048284
+0x08048284:	5B                   	pop 	%ebx
+0x08048285:	81 C3 E8 12 00 00    	add 	$0x000012E8,%ebx
+0x0804828b:	8B 93 FC FF FF FF    	movl 	-0x4(%ebx),%edx
+0x08048291:	85 D2                	test 	%edx,%edx
+0x08048293:	74 05                	jz 	0x0804829A
+0x08048295:	E8 1E 00 00 00       	lcall 	0x080482B8
+0x0804829a:	E8 B1 00 00 00       	lcall 	0x08048350
+0x0804829f:	E8 7C 01 00 00       	lcall 	0x08048420
+0x080482a4:	58                   	pop 	%eax
+0x080482a5:	5B                   	pop 	%ebx
+0x080482a6:	C9                   	leave 	
+0x080482a7:	C3                   	ret
+dWbugger >      ----------------------> also failed. Just continue
+dWbugger > disass 0x080482a8
+0x080482a8:	FF 35 70 95 04 08    	pushl 	0x8049570
+0x080482ae:	FF 25 74 95 04 08    	ljmp 	*0x8049574
+0x080482b4:	00 00                	addb 	%al,(%eax)
+0x080482b6:	00 00                	addb 	%al,(%eax)
+0x080482b8:	FF 25 78 95 04 08    	ljmp 	*0x8049578
+0x080482be:	68 00 00 00 00       	push 	$0x00000000
+0x080482c3:	E9 E0 FF FF FF       	ljmp 	0x080482A8
+0x080482c8:	FF 25 7C 95 04 08    	ljmp 	*0x804957C
+0x080482ce:	68 08 00 00 00       	push 	$0x00000008
+0x080482d3:	E9 D0 FF FF FF       	ljmp 	0x080482A8
+0x080482d8:	FF 25 80 95 04 08    	ljmp 	*0x8049580
+0x080482de:	68 10 00 00 00       	push 	$0x00000010
+0x080482e3:	E9 C0 FF FF FF       	ljmp 	0x080482A8
+0x080482e8:	00 00                	addb 	%al,(%eax)
+0x080482ea:	00 00                	addb 	%al,(%eax)
+0x080482ec:	00 00                	addb 	%al,(%eax)
+0x080482ee:	00 00                	addb 	%al,(%eax)
+0x080482f0:	31 ED                	xor 	%ebp,%ebp
+0x080482f2:	5E                   	pop 	%esi
+0x080482f3:	89 E1                	mov 	%esp,%ecx
+0x080482f5:	83 E4 F0             	and 	$0xF0,%esp
+0x080482f8:	50                   	push 	%eax
+0x080482f9:	54                   	push 	%esp
+0x080482fa:	52                   	push 	%edx
+0x080482fb:	68 B0 83 04 08       	push 	$0x080483B0
+0x08048300:	68 C0 83 04 08       	push 	$0x080483C0
+0x08048305:	51                   	push 	%ecx
+0x08048306:	56                   	push 	%esi
+0x08048307:	68 74 83 04 08       	push 	$0x08048374 -----> main
+0x0804830c:	E8 B7 FF FF FF       	lcall 	0x080482C8  -----> __libc_start_main
+0x08048311:	F4                   	hlt 	-----------------> hlt !!!!!!!!!!!!!!!
+0x08048312:	90                   	nop 	
+0x08048313:	90                   	nop 	
+0x08048314:	90                   	nop 	
+0x08048315:	90                   	nop 	
+0x08048316:	90                   	nop 	
+0x08048317:	90                   	nop 	
+0x08048318:	90                   	nop 	
+0x08048319:	90                   	nop 	
+0x0804831a:	90                   	nop 	
+0x0804831b:	90                   	nop 	
+0x0804831c:	90                   	nop 	
+0x0804831d:	90                   	nop 	
+0x0804831e:	90                   	nop 	
+0x0804831f:	90                   	nop 	
+0x08048320:	55                   	push 	%ebp
+0x08048321:	89 E5                	mov 	%esp,%ebp
+0x08048323:	83 EC 08             	sub 	$0x08,%esp
+0x08048326:	80 3D 90 95 04 08 00 	cmpb 	$0x00,0x8049590
+0x0804832d:	74 0C                	jz 	0x0804833B
+[!!!!!!] Haha :D ===== Halt has been captured. Its address is 0x08048311.
+[!!!!!!] Go on? ([Yy]/[Nn]) : n
+
+So now we get the address of main function (0x08048374).
+
+Enjoy it. :) 
