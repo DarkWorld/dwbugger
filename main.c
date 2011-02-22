@@ -76,7 +76,8 @@ int main (int argc, char **argv)
  	pid_t pid;
 
     if (argc < 2) {
-        printf ("\nUsage: %s <path of the traced program> [one argument]\n\n"
+        printf ("\nUsage: %s <path of the traced program> "
+				"[arguments for traced program]\n\n"
                 "If this is the first time to use this program, pls read "
 				"README first.\nOr you can type '%s -h' or '%s --help' to get"
 				" some help info.\n\nEnjoy it!\n\n",
@@ -98,12 +99,21 @@ int main (int argc, char **argv)
 
     /* Child process; Ready for staced */
     if (0 == pid) {
+
+#define MAX_ARGS	31
+
+		int i;
+		char *args_array[MAX_ARGS + 1] = {NULL};
+
+		for (i = 0; i < MAX_ARGS && i < argc - 1; i++) {
+			args_array[i] = argv[i + 1];
+		}
+
+		args_array[i] = NULL;
+
         ptrace (PTRACE_TRACEME, 0, 0, 0);
-        
-        if (argc > 2)
-            execl (argv[1], "traced", argv[2], NULL);
-        else
-            execl (argv[1], "traced", NULL);
+		
+		execv (argv[1], args_array);
         
         printf ("execl err\n");
         kill (getppid (), SIGKILL);
