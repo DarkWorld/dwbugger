@@ -23,6 +23,7 @@
 #define TRUE	1
 #define FALSE	0
 
+#define BUF_LEN		1024
 
 typedef unsigned long long uint64_t;
 typedef unsigned int uint32_t;

