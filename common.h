@@ -6,6 +6,8 @@
 #include <string.h>
 #include <assert.h>
 
+#include <stdint.h>
+
 #include <ctype.h>
 
 #include <unistd.h>
@@ -24,10 +26,6 @@
 #define FALSE	0
 
 #define BUF_LEN		1024
-
-typedef unsigned long long uint64_t;
-typedef unsigned int uint32_t;
-typedef unsigned char uint8_t;
 
 #define min(x, y) ((x)>(y)? (y): (x))
 #define max(x, y) ((x)<(y)? (y): (x))
