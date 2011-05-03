@@ -1,6 +1,7 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,41 +11,29 @@
 
 #include <ctype.h>
 
-#include <unistd.h>
-#include <time.h>
-#include <sys/time.h>
-
+#include <fcntl.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <signal.h>
 #include <sys/wait.h>
 
-#include <sys/user.h>
-#include <sys/reg.h>			/* For constants ORIG_EAX etc*/
-#include <sys/syscall.h>		/* For SYS_write etc */
+#include <sys/syscall.h>	/* For SYS_write etc */
+
+#include <libgen.h>		/* For basename */
 
 
 #define TRUE	1
 #define FALSE	0
 
 #define BUF_LEN		1024
+#define MAX_SIZE	1024
 
 #define min(x, y) ((x)>(y)? (y): (x))
 #define max(x, y) ((x)<(y)? (y): (x))
 
 
-typedef struct 
-{
-    char reg[11];
-    char format;
-    int len;
-    uint32_t addr;
-} peek_t;
-
-typedef struct 
-{
-    char reg[12];
-    uint32_t addr;
-    uint32_t value;
-} poke_t;
+/* Print error message and exit program */
+int error(char *msg);
 
 
 #endif
