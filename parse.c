@@ -130,6 +130,7 @@ int parse_cmd(uint8_t *buf, size_t *len)
 
 	/* Set breakpoint */
 	else if (!compare_cmd(para, "b")
+		 || !compare_cmd(para, "bp")
 		 || !compare_cmd(para, "breakpoint")) {
 		GET_ADDR();
 		return CMD_BREAKPOINT;
@@ -215,7 +216,7 @@ int parse_cmd(uint8_t *buf, size_t *len)
 
 		/* Poke, Change the value of memory or rigester */
 	} else if (!compare_cmd(para, "poke")
-		   || !compare_cmd(para, "poke")) {
+		   || !compare_cmd(para, "set")) {
 		int user_cmd;
 		poke_t *poke;
 

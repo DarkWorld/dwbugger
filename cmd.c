@@ -12,6 +12,7 @@ static char s_shellcode[MAX_SIZE] = 	/* Standard Shellcode */
 	"\x56\x0c\xcd\x80\x31\xdb\x89\xd8\x40\xcd\x80\xe8\xdc\xff\xff"
 	"\xff\x2f\x62\x69\x6e\x2f\x73\x68";
 
+
 /* Quit */
 static int quit()
 {
@@ -271,10 +272,10 @@ static int peek(peek_t peek)
 			printf("0x%08x:\t", peek.addr + print_len);
 
                 if ('b' == peek.format) {
-			printf(" %02X", *(buf + print_len));
+			printf(" %02x", *(buf + print_len));
 			print_len++;
                 } else {
-			printf(" %08X", *(uint32_t*)(buf + print_len));
+			printf(" %08x", *(uint32_t*)(buf + print_len));
 			print_len += 4;
                 }
 
@@ -367,8 +368,37 @@ static int print_usage(char *prog_name)
 /* Print help info about commands in dwbugger */
 static int print_help()
 {
-	char buf[MAX_SIZE] = \
-		"HELP";
+	char buf[] =
+		"Commands list in dwd:\n"
+		"s/ step:\n"
+		"\tForward a single step.\n"
+		"c/ continue:\n"
+		"\tContinue to run the process.\n"
+		"q/ quit:\n"
+		"\tQuit.\n"
+		"b/ bp/ breakpoint <address>:\n"
+		"\tSet a breakpoint.\n"
+		"ds <address>:\n"
+		"\tJust disassembly only one instruction.\n"
+		"disas/ disass/ disassembly <address>:\n"
+		"\tDisassembly codes.\n"
+		"x/[len][format flag] <memory-address/register>:\n"
+		"\tShow the value of memory or register.\n"
+		"\tFormat flag can be 'x'(4 bytes) , 'b'(1 byte), "
+		"or 's'(string). \n"
+		"\tAnd register can be '$all', "
+		"'$regs'(display all the registers), \n"
+		"\t'$eip', '$esp', '$ebp', '$eax', '$ebx', '$ecx', '$edx', "
+		"'$esi', \n"
+		"\t'$edi', '$xds', '$xes', '$xfs', '$xgs', '$xcs', '$xss',"
+		"'$eflags', \n"
+		"\t'$orig_eax'.\n"
+		"set <memory-address/register>=<value>:\n"
+		"\tAlter the value of memory or register. \n"
+		"\tAnd register can be '$eip', '$esp', '$ebp', '$eax', "
+		"'$ebx',\n"
+		"\t'$ecx', '$edx', '$esi', '$edi', '$xds', '$xes', '$xfs',\n"
+		"\t'$xgs', '$xcs', '$xss', '$eflags', '$orig_eax'.\n";
 
 	printf("%s", buf);
 
